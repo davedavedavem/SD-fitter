@@ -1,4 +1,4 @@
-# SD-fitter-private
+# SD-fitter
 
 ## Overview
 
