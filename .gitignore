@@ -1,0 +1,27 @@
+# Python cache & temp files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.tmp
+
+# Virtual environments
+venv/
+env/
+.buildenv/
+
+# PyInstaller build outputs
+build/
+dist/
+*.spec
+
+# Logs and dev files
+fitter_test.py
+*.ipynb
+*.log
+*.bak
+*.swp
+/*.csv
+/*.pdf
+/*.xlsx
+
