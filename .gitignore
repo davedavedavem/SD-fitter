@@ -13,7 +13,6 @@ env/
 # PyInstaller build outputs
 build/
 dist/
-*.spec
 
 # Logs and dev files
 fitter_test.py
