@@ -2,12 +2,12 @@
 
 ## Overview
 
-This program uses semi-derivative transforms on cyclic voltammetry (CV) data to fit baselines for i<sub>p</sub> measurements. A summary PDF report is generated, with options for csv and xlsx outputs to enable users to create their own plots. 
+This program uses semi-derivative transforms on cyclic voltammetry (CV) data to fit baselines for i<sub>p</sub> measurements. A summary PDF report is generated, with options for CSV and XLSX outputs to enable users to create their own plots. 
 
 ![plot](example.png)
-*Example of output plots from SD Fitter program. (Left) semi-derivative of voltammogram with individual fit components, and (right) voltammogram with baselines calculated using deconvolved fit components*
+*Example of output plots from SD Fitter program. (Left) semi-derivative of voltammogram with individual fit components, and (right) voltammogram with baselines calculated using deconvolved fit components.*
 
-A piecewise constant R-CPE model approximation is used to calculate the capactive current, and this is fitted at the same time as the Faradaic current components. Capacitive current fitting and exponential background electrolysis can be turned off. Exported data from CH Instruments, Nova, and PSTrace are currently supported. A template file is also available for users to input their own data manually.
+A piecewise R-CPE model approximation is used to calculate the capactive current, and this is fitted at the same time as the Faradaic current components. Capacitive current fitting and exponential background electrolysis can be turned off. Exported data from CH Instruments, Nova, and PSTrace are currently supported. A template file is also available for users to input their own data manually.
 
 ## Basic usage
 
