@@ -23,4 +23,6 @@ fitter_test.py
 /*.csv
 /*.pdf
 /*.xlsx
+Sample data/*/
+!Sample data/*.csv
 

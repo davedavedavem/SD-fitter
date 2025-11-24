@@ -1,11 +1,14 @@
-import os
+import time as time_module
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import library
+from PyQt5.QtWidgets import QApplication
 from lmfit import models, Parameters
 from scipy.signal import find_peaks
 from scipy.special import loggamma, betaln, gamma
-from library import build_piecewise, CV, diff_int, pdf_summary, xlsx_summary
+
+# from library import build_piecewise, CV, diff_int, pdf_summary, peak_finder_auto, peak_finder_manual, xlsx_summary
 
 plt.rcParams["font.family"] = "sans-serif"
 plt.rcParams["font.sans-serif"] = ["Arial"]
@@ -14,7 +17,7 @@ plt.rcParams["font.sans-serif"] = ["Arial"]
 def fitter(userinput_dict):
     # CV file reading and data preparation
     print(f"\nReading CV data: {userinput_dict['filename']}")
-    cv = CV(userinput_dict)
+    cv = library.CV(userinput_dict)
     scan_rate = (cv.dataframe["E"][100] - cv.dataframe["E"][0]) / cv.dataframe["Time"][
         100
     ]
@@ -23,7 +26,7 @@ def fitter(userinput_dict):
     time = np.array(cv.dataframe["Time"])
     potential = np.array(cv.dataframe["E"])
     current = np.array(cv.dataframe["I"])
-    transform = diff_int(time, current, 1 / 2)
+    transform = library.diff_int(time, current, 1 / 2)
 
     # setup list of t discontinuities in E'(t) for CPE summation func
     t_discs = [0]
@@ -35,8 +38,8 @@ def fitter(userinput_dict):
         CPE_current = np.zeros_like(time)
         if any(key.startswith("Q") for key in params):
             # create piecewise constant Q and alpha arrays
-            Q_t = build_piecewise(time, t_discs, params, "Q")
-            alpha_t = build_piecewise(time, t_discs, params, "alpha")
+            Q_t = library.build_piecewise(time, t_discs, params, "Q")
+            alpha_t = library.build_piecewise(time, t_discs, params, "alpha")
 
             n_seg = len(t_discs) - 1
             k = 1
@@ -62,7 +65,7 @@ def fitter(userinput_dict):
         if "i0" in params:
             bkg_electrolysis += params["i0"] * np.exp(params["k"] * potential)
 
-        return diff_int(time, bkg_electrolysis + CPE_current, 1 / 2)
+        return library.diff_int(time, bkg_electrolysis + CPE_current, 1 / 2)
 
     # create params for background func
     sign = (
@@ -86,7 +89,7 @@ def fitter(userinput_dict):
         subset_params.add(
             "i0", value=sign * 1e-3, min=min(i0_params), max=max(i0_params)
         )
-        subset_params.add("k", value=sign * 1, min=min(k_params), max=max(k_params))
+        subset_params.add("k", value=sign * 1e-3, min=min(k_params), max=max(k_params))
 
     # subset creation
     idx_range1 = int(0.1 / cv.V_per_index)
@@ -122,18 +125,22 @@ def fitter(userinput_dict):
     model = models.Model(SD_background)
     params = subset_result.params
 
-    # peak detection and model update for each peak
-    width_param = int(0.06 / cv.V_per_index)
-    SD_peaks = find_peaks(
-        abs(transform),
-        width=width_param,
-        prominence=2,
-        height=max(abs(transform)) * 0.05,
-    )[
-        0
-    ]  # abs used to find -ve peaks and +ve peaks
+    # PEAK DETECTION
+    if userinput_dict["peak_detection"] == "Automatic":
+        bkg = SD_background(time, **params)
+        width_param = int(0.03 / cv.V_per_index)
+        SD_peaks = library.peak_finder_auto(transform, bkg, width_param)
+        print(f"{len(SD_peaks)} peaks detected")
 
-    # create empty peak model for scan
+    else:
+        SD_peaks = library.peak_finder_manual(cv, transform)
+
+        # prevents fitt.py from continuing while user selecting peaks
+        while not library.manual_picking_finished:
+            QApplication.processEvents()
+            time_module.sleep(0.01)
+
+    # MODEL UPDATE FROM PEAK LIST
     skew_0 = 0
     expon_0 = 1.5
     peak_counter = 0
@@ -173,7 +180,7 @@ def fitter(userinput_dict):
             peak_counter += 1
         except:
             pass
-    print(f"{len(SD_peaks)} peaks detected")
+
     print("Fitting total model")
     result = model.fit(transform, params, x=time, max_nfev=500, method="least_squares")
 
@@ -199,7 +206,7 @@ def fitter(userinput_dict):
     baseline_df["I"] = cv.dataframe["I"]
 
     for comp in list(components.keys())[::-1]:
-        current_comp = diff_int(time, components[comp], -1 / 2)
+        current_comp = library.diff_int(time, components[comp], -1 / 2)
         comp_name = comp.removeprefix("SD_")
         comp_name = comp_name.removesuffix("_")
         df.insert(0, comp_name, current_comp)
@@ -207,21 +214,21 @@ def fitter(userinput_dict):
     # Baseline creation for each peak
     b_counter = 1
     ip_list = []
+    Ep_list = []
     for comp in components:
         if "background" in comp:
             continue
         baseline = result.best_fit - components[comp]
-        baseline = diff_int(time, baseline, -1 / 2)
+        baseline = library.diff_int(time, baseline, -1 / 2)
         # removes baseline after peak of interest
-        idx_p = np.argmax(abs(diff_int(time, components[comp], -1 / 2)))
+        idx_p = np.argmax(abs(library.diff_int(time, components[comp], -1 / 2)))
+        Ep_list.append(potential[idx_p])
         baseline[idx_p:] = "NaN"
-
         baseline_df[f"Peak {b_counter} baseline"] = baseline
-
         ip_list.append(components[comp][idx_p])
         b_counter += 1
 
-    df.insert(0, "total_fit", diff_int(time, result.best_fit, -1 / 2))
+    df.insert(0, "total_fit", library.diff_int(time, result.best_fit, -1 / 2))
     df.insert(0, "I", cv.dataframe["I"])
     df.insert(0, "E", cv.dataframe["E"])
     df.insert(0, "Time", cv.dataframe["Time"])
@@ -235,10 +242,10 @@ def fitter(userinput_dict):
 
     # XLSX
     if userinput_dict["xlsx"]:
-        xlsx_summary(userinput_dict, name, df, baseline_df, cv, len(components))
+        library.xlsx_summary(userinput_dict, name, df, baseline_df, cv, len(components))
 
     # PDF
-    pdf_summary(userinput_dict, name, ip_list, cv, result, baseline_df)
+    library.pdf_summary(userinput_dict, name, ip_list, Ep_list, cv, result, baseline_df)
 
     print(f"Reports saved with name: {name}")
     return "Program ran successfully."

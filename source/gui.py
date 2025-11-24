@@ -93,6 +93,19 @@ class MainWindow(QMainWindow):
         cap_group.setLayout(cap_layout)
         layout.addWidget(cap_group)
 
+        # Peak picking group
+        peak_group = QGroupBox("Peak detection")
+        peak_layout = QVBoxLayout()
+        self.peak_button_group = QButtonGroup(self)
+        for i, model in enumerate(["Automatic", "Manual"]):
+            btn = QRadioButton(model)
+            if i == 0:
+                btn.setChecked(True)
+            self.peak_button_group.addButton(btn)
+            peak_layout.addWidget(btn)
+        peak_group.setLayout(peak_layout)
+        layout.addWidget(peak_group)
+
         # Misc options
         misc_group = QGroupBox("Misc.")
         misc_layout = QVBoxLayout()
@@ -144,6 +157,7 @@ class MainWindow(QMainWindow):
             "output_dir": self.output_dir,
             "name": self.output_name_input.text(),
             "capacitance_model": self.cap_button_group.checkedButton().text(),
+            "peak_detection": self.peak_button_group.checkedButton().text(),
             "bkg_exp": self.misc_check1.isChecked(),
             "csv": self.misc_check2.isChecked(),
             "xlsx": self.misc_check3.isChecked(),
@@ -176,9 +190,9 @@ class MainWindow(QMainWindow):
         QMessageBox.information(
             self,
             "About",
-            "Version: 1.0.1 revised on 5/11/2025<br/>"
+            "Version 1.1.0 (Released 24/11/2025)<br/>"
             + "Semi-derivative Fitter was created by David S. Macedo and Conor F. Hogan.<br/><br/>"
-            + "Source code and additional documentation can be found at <a href='www.github.com/davedavedavem/diffusional-fitter'>www.github.com/davedavedavem/SD-fitter</a><br/><br/>",
+            + "Source code and additional documentation can be found at <a href='www.github.com/davedavedavem/SD-fitter'>www.github.com/davedavedavem/SD-fitter</a><br/><br/>",
         )
 
 

@@ -2,9 +2,10 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import textwrap
-from scipy.signal import find_peaks
+from scipy.signal import find_peaks, medfilt
 from scipy.special import gamma
 from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.widgets import Button
 
 
 def build_piecewise(time, t_discs, params, prefix):
@@ -272,7 +273,7 @@ def diff_int(x, y, q):
     return quotient_array * summation_array
 
 
-def pdf_summary(userinput_dict, name, ip_list, cv, result, baseline_df):
+def pdf_summary(userinput_dict, name, ip_list, Ep_list, cv, result, baseline_df):
     with PdfPages(f"{userinput_dict['output_dir']}/{name}.pdf") as pdf:
         # unpack inputs
         potential = np.array(cv.dataframe["E"])
@@ -323,11 +324,7 @@ def pdf_summary(userinput_dict, name, ip_list, cv, result, baseline_df):
                 potential[idx_ip], base[-1], current[idx_ip], color=colour, ls="dashed"
             )
 
-            ip_label = (
-                f"Peak {counter+1}\n"
-                + str(round(ip_list[counter], 2))
-                + f" {cv.scale_prefix}A"
-            )
+            ip_label = f"{counter+1}"
             ip_label_offset = (
                 abs(ip_list[counter])
                 / ip_list[counter]
@@ -347,8 +344,8 @@ def pdf_summary(userinput_dict, name, ip_list, cv, result, baseline_df):
         if len(ip_list) > 0:
             table_data = []
             for i, val in enumerate(ip_list, start=1):
-                name = f"Peak {i}"
-                table_data.append([name, round(val, 2)])
+                name = f"{i}"
+                table_data.append([name, round(val, 2), round(Ep_list[i - 1], 3)])
             ax_table = axs[1]
             ax_table.axis("off")
 
@@ -365,10 +362,16 @@ def pdf_summary(userinput_dict, name, ip_list, cv, result, baseline_df):
             # Table
             table = ax_table.table(
                 cellText=table_data,
-                colLabels=["Peak no.", f"i ({cv.scale_prefix}A)"],
+                colLabels=["Peak no.", f"i$_p$ ({cv.scale_prefix}A)", r"E$_p$ (V)"],
                 cellLoc="center",
                 loc="center",
             )
+
+            # Bold column headings
+            for (row, col), cell in table.get_celld().items():
+                if row == 0:  # row 0 = header row
+                    cell.set_text_props(fontweight="bold")
+
             table.auto_set_font_size(False)
             table.set_fontsize(9)
             table.scale(0.8, 1.4)
@@ -455,6 +458,88 @@ def pdf_summary(userinput_dict, name, ip_list, cv, result, baseline_df):
 
             pdf.savefig(fig, dpi=300)
             plt.close(fig)
+
+
+def peak_finder_auto(y, bkg, width):
+
+    # smoothing for transient spikes
+    transform_smoothed = medfilt(y, kernel_size=7)
+
+    prom = abs(y).max() * 0.02
+    pos_peaks = find_peaks(
+        transform_smoothed, prominence=prom, height=bkg, width=width
+    )[0]
+
+    neg_peaks = find_peaks(
+        -transform_smoothed, prominence=prom, height=bkg, width=width
+    )[0]
+
+    peak_array = np.sort(np.concatenate((pos_peaks, neg_peaks)))
+    return peak_array
+
+
+manual_picking_finished = False
+
+
+def peak_finder_manual(cv, y):
+    global manual_picking_finished
+    manual_picking_finished = False
+
+    x = np.array(cv.dataframe["Time"])
+
+    fig, ax = plt.subplots()
+    fig.canvas.manager.set_window_title("Manual Peak Selection")
+    ax.plot(x, y, lw=1.2)
+    ax.set_title(
+        "Left-click: add peak   |   Right-click: delete peak\n"
+        "Close this window when finished"
+    )
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel(rf"e ({cv.scale_prefix}A s$^{{-1/2}}$)")
+
+    peaks = []
+    markers = []
+
+    def onclick(event):
+        if event.inaxes != ax or event.xdata is None:
+            return
+
+        # prevents peak assignment when using zoom or panning tools
+        toolbar = fig.canvas.manager.toolbar
+        if toolbar.mode != "":
+            return
+
+        # nearest data index to the click
+        click_idx = int(np.argmin(np.abs(x - event.xdata)))
+
+        # add marker with left click
+        if event.button == 1:
+            peaks.append(click_idx)
+            (m,) = ax.plot(x[click_idx], y[click_idx], "ro", markersize=6)
+            markers.append(m)
+            fig.canvas.draw_idle()
+            return
+
+        # remove nearest marker with right click
+        if event.button == 3 and peaks:
+            distances = [abs(pi - click_idx) for pi in peaks]
+            nearest_idx = int(np.argmin(distances))
+            del peaks[nearest_idx]
+            marker = markers.pop(nearest_idx)
+            marker.remove()
+            fig.canvas.draw_idle()
+
+    cid = fig.canvas.mpl_connect("button_press_event", onclick)
+
+    def on_close(event):
+        global manual_picking_finished
+        fig.canvas.mpl_disconnect(cid)
+        manual_picking_finished = True
+
+    fig.canvas.mpl_connect("close_event", on_close)
+
+    plt.show(block=False)
+    return peaks
 
 
 def xlsx_summary(userinput_dict, name, df, baseline_df, cv, n_components):
@@ -631,7 +716,7 @@ def xlsx_summary(userinput_dict, name, df, baseline_df, cv, n_components):
             )
             t_chart.set_y_axis(
                 {
-                    "name": f"i ({cv.scale_prefix}A s^(-1/2))",
+                    "name": f"e ({cv.scale_prefix}A s^(-1/2))",
                     "label_position": "low",
                 }
             )
@@ -664,7 +749,7 @@ def xlsx_summary(userinput_dict, name, df, baseline_df, cv, n_components):
             )
             E_chart.set_y_axis(
                 {
-                    "name": f"i ({cv.scale_prefix}A s^(-1/2))",
+                    "name": f"e ({cv.scale_prefix}A s^(-1/2))",
                     "label_position": "low",
                 }
             )
