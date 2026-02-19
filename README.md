@@ -7,6 +7,8 @@ This program uses semi-derivative transforms on cyclic voltammetry (CV) data to 
 ![plot](example.png)
 *Example of output plots from SD Fitter program. (Left) semi-derivative of voltammogram with individual fit components, and (right) voltammogram with baselines calculated using deconvolved fit components.*
 
+More information about how the fitting is performed is described in our paper "Enhancing Analytical Performance in Cyclic Voltammetry: An Open-Source Tool for Signal Deconvolution" - https://pubs.acs.org/doi/10.1021/acs.analchem.5c07228. If this program has been useful for your work we'd appreciate citation.
+
 A piecewise R-CPE model approximation is used to calculate the capactive current, and this is fitted at the same time as the Faradaic current components. Capacitive current fitting and exponential background electrolysis can be turned off. Exported data from CH Instruments, Nova, and PSTrace are currently supported. A template file is also available for users to input their own data manually.
 
 ## Basic usage
@@ -36,7 +38,7 @@ A piecewise R-CPE model approximation is used to calculate the capactive current
 The CSV template can be used for data collected from any potentiostat. The user needs to input the experiment's scan rate (V/s), potential data (V), and current data (A) in a program like Excel. Take care when inputing data in scientific notation as some programs will round to three significant figures when the template copy is saved, resulting in current data with step artifacts. In Excel, formating these cells as 'General' should avoid this problem.
 
 ### CH Instruments text file
-The exported data should be a text file with only the first two segments of your voltammogram. The program works with comma or tab delimited text files.
+The exported data should be a text file and can be either comma or tab delimited.
 
 ### Nova text file
 Exports from Nova should use the following settings:  

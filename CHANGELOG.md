@@ -1,3 +1,9 @@
+<a name="v1.1.1"></a>
+# v1.1.1 - 2026-02-19
+## Minor update
+- Updated "About" section to include reference to Analytical Chemistry paper
+
+
 <a name="v1.1.0"></a>
 # v1.1.0 - 2025-11-24
 ## Added features and improvements

@@ -190,9 +190,14 @@ class MainWindow(QMainWindow):
         QMessageBox.information(
             self,
             "About",
-            "Version 1.1.0 (Released 24/11/2025)<br/>"
+            "Version 1.1.1 (Released 19/02/2026)<br/>"
             + "Semi-derivative Fitter was created by David S. Macedo and Conor F. Hogan.<br/><br/>"
-            + "Source code and additional documentation can be found at <a href='www.github.com/davedavedavem/SD-fitter'>www.github.com/davedavedavem/SD-fitter</a><br/><br/>",
+            + "Source code and additional documentation can be found at <a href='www.github.com/davedavedavem/SD-fitter'>www.github.com/davedavedavem/SD-fitter</a><br/><br/>"+
+            "More information about the fitting process can be found <a href='https://pubs.acs.org/doi/10.1021/acs.analchem.5c07228'>here</a> in our paper:<br/>"+
+            "<b>Enhancing Analytical Performance in Cyclic Voltammetry: An Open-Source Tool for Signal Deconvolution</b><br/>"+
+            "David S. Macedo, Theo Rodopoulos, Mikko Vepsäläinen, Samridhi Bajaj, Helmini Jayarathne, and Conor F. Hogan<br/>"+
+            "<i>Analytical Chemistry</i> <b>2026</b><br/>"+
+            "DOI: 10.1021/acs.analchem.3c04181",
         )
 
 
