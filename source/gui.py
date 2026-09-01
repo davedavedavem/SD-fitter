@@ -23,6 +23,7 @@ from PyQt5.QtGui import QIcon
 import os
 import traceback
 from fitter import fitter
+from library import CURRENT_VERSION, RELEASE_DATE, CHANGE_URL, get_latest_release
 
 
 class MainWindow(QMainWindow):
@@ -127,6 +128,11 @@ class MainWindow(QMainWindow):
         self.about_button = QPushButton("About")
         self.about_button.clicked.connect(self.show_about)
         btn_layout.addWidget(self.about_button)
+        # layout.addLayout(btn_layout)
+
+        self.release_button = QPushButton("Check for later releases")
+        self.release_button.clicked.connect(self.release_check)
+        btn_layout.addWidget(self.release_button)
         layout.addLayout(btn_layout)
 
     def select_file(self):
@@ -190,15 +196,34 @@ class MainWindow(QMainWindow):
         QMessageBox.information(
             self,
             "About",
-            "Version 1.1.1 (Released 19/02/2026)<br/>"
+            f"Version {CURRENT_VERSION} (Released {RELEASE_DATE})<br/>"
             + "Semi-derivative Fitter was created by David S. Macedo and Conor F. Hogan.<br/><br/>"
-            + "Source code and additional documentation can be found at <a href='www.github.com/davedavedavem/SD-fitter'>www.github.com/davedavedavem/SD-fitter</a><br/><br/>"+
-            "More information about the fitting process can be found <a href='https://pubs.acs.org/doi/10.1021/acs.analchem.5c07228'>here</a> in our paper:<br/>"+
-            "<b>Enhancing Analytical Performance in Cyclic Voltammetry: An Open-Source Tool for Signal Deconvolution</b><br/>"+
-            "David S. Macedo, Theo Rodopoulos, Mikko Vepsäläinen, Samridhi Bajaj, Helmini Jayarathne, and Conor F. Hogan<br/>"+
-            "<i>Analytical Chemistry</i> <b>2026</b><br/>"+
-            "DOI: 10.1021/acs.analchem.3c04181",
+            + "Source code and additional documentation can be found at <a href='www.github.com/davedavedavem/SD-fitter'>www.github.com/davedavedavem/SD-fitter</a><br/><br/>"
+            + "More information about the fitting process can be found <a href='https://pubs.acs.org/doi/10.1021/acs.analchem.5c07228'>here</a> in our paper:<br/>"
+            + "<b>Enhancing Analytical Performance in Cyclic Voltammetry: An Open-Source Tool for Signal Deconvolution</b><br/>"
+            + "David S. Macedo, Theo Rodopoulos, Mikko Vepsäläinen, Samridhi Bajaj, Helmini Jayarathne, and Conor F. Hogan<br/>"
+            + "<i>Analytical Chemistry</i> <b>2026</b><br/>"
+            + "DOI: 10.1021/acs.analchem.3c04181",
         )
+
+    def release_check(self):
+        release_info = get_latest_release()
+        if release_info["status"] == "check_failed":
+            message = "Couldn't check for updates. Please check internet connection or try again later."
+
+        if release_info["status"] == "up_to_date":
+            message = f"You are currently using the latest version ({release_info['version']})"
+
+        if release_info["status"] == "update_available":
+            url = release_info["url"]
+            message = (
+                f"There is a later version available ({release_info['version']}):<br/>"
+                f"<a href='{url}'>{url}</a><br/><br/>"
+                "A more comprehensive log of updates can be found in the changelog:<br/>"
+                f"<a href='{CHANGE_URL}'>{CHANGE_URL}</a>"
+            )
+
+        QMessageBox.information(self, "Release check", f"{message}")
 
 
 if __name__ == "__main__":

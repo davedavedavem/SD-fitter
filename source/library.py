@@ -2,10 +2,47 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import textwrap
+import urllib.request
+import json
+import re
 from scipy.signal import find_peaks, medfilt
 from scipy.special import gamma
 from matplotlib.backends.backend_pdf import PdfPages
-from matplotlib.widgets import Button
+
+
+CURRENT_VERSION = "1.2.0"
+RELEASE_DATE = "01/09/2026"
+API_URL = "https://api.github.com/repos/davedavedavem/SD-fitter/releases/latest"
+CHANGE_URL = "https://github.com/davedavedavem/SD-fitter/blob/main/CHANGELOG.md"
+
+
+def _parse_version(v: str) -> tuple:
+    v = v.lstrip("vV")
+    parts = re.match(r"(\d+)\.(\d+)\.(\d+)", v)
+    if not parts:
+        raise ValueError(f"Unparseable version: {v}")
+    return tuple(int(x) for x in parts.groups())
+
+
+def get_latest_release() -> dict:
+    try:
+        req = urllib.request.Request(
+            API_URL, headers={"Accept": "application/vnd.github+json"}
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode())
+
+        latest_tag = data["tag_name"]
+        release_url = data["html_url"]
+        latest_version = _parse_version(latest_tag)
+        current_version = _parse_version(CURRENT_VERSION)
+
+    except Exception:
+        return {"status": "check_failed"}
+
+    if latest_version > current_version:
+        return {"status": "update_available", "version": latest_tag, "url": release_url}
+    return {"status": "up_to_date", "version": CURRENT_VERSION}
 
 
 def build_piecewise(time, t_discs, params, prefix):
@@ -41,15 +78,14 @@ class CV:
         self.i_max_pot = df["E"].idxmax()
         self.max_pot = df["E"][self.i_max_pot]
         self.min_pot = df["E"][self.i_min_pot]
-        self.V_per_index = abs(
-            round((self.max_pot - self.min_pot) / (self.i_max_pot - self.i_min_pot), 3)
-        )
+        self.V_per_index = abs(round((df["E"].iloc[20] - df["E"].iloc[0]) / 20, 3))
 
         # finds indices of switching potentials
-        potential_gradient = np.gradient(df["E"])
-        self.i_switch_pot = np.where(abs(potential_gradient) < self.V_per_index * 0.5)[
-            0
-        ]  # decimal used as margin for noise in gradient
+        # index value of 25 mV used for distance threshold in switching potential detection
+        idx_distance = int(0.025 / self.V_per_index)
+        pos_peaks = find_peaks(df["E"], distance=idx_distance)[0]
+        neg_peaks = find_peaks(-df["E"], distance=idx_distance)[0]
+        self.i_switch_pot = np.sort(np.concatenate((pos_peaks, neg_peaks)))
         self.t_switch_pot = df["Time"][self.i_switch_pot]
 
         peak_width = int(
@@ -202,12 +238,7 @@ def CV_reader(userinput_dict):
             df["I"] *= 1e-12
 
         # use scanrate from userinput_dict to generate time column
-        V_per_index = abs(
-            round(
-                (df["E"].max() - df["E"].min()) / (df["E"].idxmax() - df["E"].idxmin()),
-                3,
-            )
-        )
+        V_per_index = abs(round((df["E"].iloc[20] - df["E"].iloc[20]) / 20, 3))
         time = df.index * V_per_index / userinput_dict["scan_rate"]
         df["Time"] = time
 
@@ -230,7 +261,7 @@ def CV_reader(userinput_dict):
         # calculate V_per_index and use scan_rate to calculate time column
         V_per_index = abs(
             round(
-                (df["E"].max() - df["E"].min()) / (df["E"].idxmax() - df["E"].idxmin()),
+                ((df["E"].iloc[20] - df["E"].iloc[0]) / 20),
                 3,
             )
         )

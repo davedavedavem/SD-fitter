@@ -1,3 +1,16 @@
+<a name="v1.2.0"></a>
+# v1.2.0 - 2026-09-01
+## Added
+- Added update checker to search for more recent releases on GitHub
+
+## Changed
+- Implemented a more robust switching potential detection method
+- Modified underlying calculation of voltage per data index, to be more generalisable to voltammograms with >2 segments
+
+## Fixes
+- Fixed issue with incorrect i<sub>p</sub> values in PDF report table
+
+
 <a name="v1.1.1"></a>
 # v1.1.1 - 2026-02-19
 ## Minor update

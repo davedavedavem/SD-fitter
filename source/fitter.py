@@ -8,8 +8,6 @@ from lmfit import models, Parameters
 from scipy.signal import find_peaks
 from scipy.special import loggamma, betaln, gamma
 
-# from library import build_piecewise, CV, diff_int, pdf_summary, peak_finder_auto, peak_finder_manual, xlsx_summary
-
 plt.rcParams["font.family"] = "sans-serif"
 plt.rcParams["font.sans-serif"] = ["Arial"]
 
@@ -225,7 +223,7 @@ def fitter(userinput_dict):
         Ep_list.append(potential[idx_p])
         baseline[idx_p:] = "NaN"
         baseline_df[f"Peak {b_counter} baseline"] = baseline
-        ip_list.append(components[comp][idx_p])
+        ip_list.append(library.diff_int(time, components[comp], -1 / 2)[idx_p])
         b_counter += 1
 
     df.insert(0, "total_fit", library.diff_int(time, result.best_fit, -1 / 2))
